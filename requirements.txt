@@ -1,0 +1,2 @@
+# Implements the reverse-engineered Android TV Remote Service protocol (TLS/6466).
+androidtvremote2>=0.0.14
