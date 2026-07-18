@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>onn remote</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui,sans-serif; background:#111; color:#f6f6f6; }
+    body { margin:0 auto; max-width:440px; padding:24px 18px 48px; text-align:center; }
+    h1 { margin:0 0 4px; font-size:1.7rem; } p { color:#aaa; margin-top:4px; }
+    button { border:0; border-radius:14px; background:#292929; color:inherit; min-height:58px; font-size:1rem; font-weight:650; cursor:pointer; }
+    button:active { background:#555; transform:scale(.97) } .top { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:28px 0; }
+    .dpad { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; max-width:280px; margin:28px auto; } .blank { visibility:hidden }
+    .round { border-radius:50%; aspect-ratio:1; min-height:0; font-size:1.2rem; } .wide { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    form { display:flex; gap:8px; margin:30px 0 8px; } input { flex:1; min-width:0; border:1px solid #555; border-radius:10px; background:#1a1a1a; color:inherit; padding:10px; font-size:1rem; }
+    form button { min-height:auto; padding:0 15px; } #status { min-height:1.3em; color:#aaa; font-size:.9rem; } .danger { color:#ff8c8c; }
+  </style>
+</head>
+<body>
+  <h1>onn remote</h1><p>Google TV Remote Service</p>
+  <div class="top"><button data-key="POWER">Power</button><button data-key="INPUT">Input</button><button data-key="MUTE">Mute</button></div>
+  <div class="dpad"><i class="blank"></i><button class="round" data-key="DPAD_UP">▲</button><i class="blank"></i><button class="round" data-key="DPAD_LEFT">◀</button><button class="round" data-key="DPAD_CENTER">OK</button><button class="round" data-key="DPAD_RIGHT">▶</button><i class="blank"></i><button class="round" data-key="DPAD_DOWN">▼</button><i class="blank"></i></div>
+  <div class="wide"><button data-key="BACK">Back</button><button data-key="HOME">Home</button><button data-key="MENU">Menu</button><button data-key="VOLUME_DOWN">Vol −</button><button data-key="MEDIA_PLAY_PAUSE">Play/Pause</button><button data-key="VOLUME_UP">Vol +</button></div>
+  <form id="settings"><input id="host" aria-label="TV IP address" placeholder="TV IP address or hostname" required><button>Save</button></form>
+  <div id="status" aria-live="polite"></div>
+  <script>
+    const status = document.querySelector('#status'), host = document.querySelector('#host');
+    const say = (text, error=false) => { status.textContent = text; status.className = error ? 'danger' : ''; };
+    fetch('/api/config').then(r=>r.json()).then(c=>host.value=c.host||'');
+    document.querySelectorAll('[data-key]').forEach(button => button.onclick = async () => {
+      say('Sending…'); const r = await fetch('/api/key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:button.dataset.key})});
+      const data = await r.json(); say(data.error || 'Sent', !r.ok);
+    });
+    document.querySelector('#settings').onsubmit = async e => { e.preventDefault(); const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host:host.value})}); const d=await r.json(); say(d.error || 'TV address saved.',!r.ok); };
+  </script>
+</body></html>
