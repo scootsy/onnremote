@@ -1,35 +1,370 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d0a14">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="onn remote">
   <title>onn remote</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23120d1c'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%238b5cf6' stroke-width='7'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root { color-scheme: dark; font-family: system-ui,sans-serif; background:#111; color:#f6f6f6; }
-    body { margin:0 auto; max-width:440px; padding:24px 18px 48px; text-align:center; }
-    h1 { margin:0 0 4px; font-size:1.7rem; } p { color:#aaa; margin-top:4px; }
-    button { border:0; border-radius:14px; background:#292929; color:inherit; min-height:58px; font-size:1rem; font-weight:650; cursor:pointer; }
-    button:active { background:#555; transform:scale(.97) } .top { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:28px 0; }
-    .dpad { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; max-width:280px; margin:28px auto; } .blank { visibility:hidden }
-    .round { border-radius:50%; aspect-ratio:1; min-height:0; font-size:1.2rem; } .wide { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-    form { display:flex; gap:8px; margin:30px 0 8px; } input { flex:1; min-width:0; border:1px solid #555; border-radius:10px; background:#1a1a1a; color:inherit; padding:10px; font-size:1rem; }
-    form button { min-height:auto; padding:0 15px; } #status { min-height:1.3em; color:#aaa; font-size:.9rem; } .danger { color:#ff8c8c; }
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0 auto; max-width: 440px; min-height: 100vh; min-height: 100dvh;
+      padding: calc(28px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
+      font-family: 'Outfit', system-ui, sans-serif; color: #ece9f4;
+      background: linear-gradient(180deg, #120d1c, #0d0a14) fixed;
+      display: flex; flex-direction: column; gap: 26px;
+      user-select: none; -webkit-user-select: none;
+    }
+    button { font-family: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+
+    /* header */
+    header { display: flex; align-items: center; justify-content: space-between; }
+    h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+    h1 span { color: #8f86a8; font-weight: 400; }
+    .host-line { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8f86a8; margin-top: 2px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #7c3aed; transition: background .3s; flex: none; }
+    .dot.ok { background: #34d399; }
+    .dot.warn { background: #fbbf24; }
+    .dot.err { background: #ff8c8c; }
+    .dot.busy { animation: pulse 1.1s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .25; } }
+    .gear {
+      width: 40px; height: 40px; border-radius: 50%; border: 1px solid #2a2140;
+      background: linear-gradient(180deg, #221936, #171021);
+      box-shadow: 0 3px 8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+      color: #8f86a8; font-size: 16px;
+    }
+
+    /* tactile button base */
+    .key {
+      border: 1px solid #2a2140; border-radius: 16px; min-height: 52px;
+      background: linear-gradient(180deg, #221936, #171021);
+      box-shadow: 0 4px 10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.07);
+      font-size: 14px; font-weight: 500;
+      transition: transform .06s, box-shadow .06s;
+    }
+    .key:active, .gear:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+    .key:disabled { opacity: .55; cursor: default; }
+    .caps { font-size: 12px; font-weight: 600; letter-spacing: .1em; color: #a99cc8; }
+    .power {
+      border-color: #3b2a5e; color: #e4d9ff; font-weight: 600; height: 56px;
+      background: linear-gradient(180deg, #43276e, #2c1a4d);
+      box-shadow: 0 4px 10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.12);
+    }
+
+    .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .row3 .key { height: 56px; }
+    .row3 .caps { height: 52px; }
+
+    /* d-pad ring */
+    .dpad { position: relative; width: 250px; height: 250px; margin: 0 auto; }
+    .ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      background: linear-gradient(180deg, #1e1630, #130e1e);
+      border: 1px solid #2a2140;
+      box-shadow: 0 8px 22px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .dpad button { position: absolute; background: transparent; border: 0; color: #a78bfa; font-size: 15px; }
+    .up    { top: 8px;    left: 50%; transform: translateX(-50%); width: 80px; height: 60px; }
+    .down  { bottom: 8px; left: 50%; transform: translateX(-50%); width: 80px; height: 60px; }
+    .left  { left: 8px;   top: 50%;  transform: translateY(-50%); width: 60px; height: 80px; }
+    .right { right: 8px;  top: 50%;  transform: translateY(-50%); width: 60px; height: 80px; }
+    .up:active, .down:active { color: #e4d9ff; }
+    .left:active, .right:active { color: #e4d9ff; }
+    .ok {
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 96px; height: 96px; border-radius: 50% !important;
+      border: 1px solid #8b5cf6 !important;
+      background: linear-gradient(180deg, #8b5cf6, #5b21b6) !important;
+      box-shadow: 0 6px 16px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.25);
+      color: #fff !important; font-size: 15px; font-weight: 600;
+      transition: transform .06s, box-shadow .06s;
+    }
+    .ok:active { transform: translate(-50%, calc(-50% + 2px)); box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+
+    /* pill groups (volume / media) */
+    .pills { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .pill {
+      display: flex; border: 1px solid #2a2140; border-radius: 16px; overflow: hidden;
+      background: linear-gradient(180deg, #221936, #171021);
+      box-shadow: 0 4px 10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    .pill button { flex: 1; height: 52px; border: 0; background: transparent; font-size: 13px; }
+    .pill button:active { background: rgba(0,0,0,.35); }
+    .pill .big { font-size: 18px; }
+    .pill .dim { color: #a99cc8; }
+    .sep { width: 1px; background: #2a2140; }
+
+    /* settings: scan, pick, or type */
+    #settings { display: none; flex-direction: column; gap: 12px; }
+    #settings.open { display: flex; }
+    #settings form { display: flex; gap: 8px; }
+    #settings form .key { min-height: auto; padding: 0 18px; }
+    input {
+      flex: 1; min-width: 0; border: 1px solid #2a2140; border-radius: 12px;
+      background: #171021; color: inherit; padding: 12px; font-size: 16px; font-family: inherit;
+    }
+    input:focus { outline: none; border-color: #7c3aed; }
+    .devices { display: flex; flex-direction: column; gap: 8px; }
+    .device { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; padding: 10px 16px; }
+    .device b { display: block; font-weight: 500; font-size: 14px; }
+    .device small { color: #8f86a8; font-size: 12px; font-weight: 400; }
+    .device::after { content: "USE"; font-size: 10px; font-weight: 600; letter-spacing: .12em; color: #a78bfa; }
+    .device.selected { border-color: #8b5cf6; }
+    .device.selected::after { content: "✓ IN USE"; color: #e4d9ff; }
+    .or { display: flex; align-items: center; gap: 10px; color: #5c5476; font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+    .or::before, .or::after { content: ""; height: 1px; flex: 1; background: #2a2140; }
+
+    /* pairing */
+    #pairing {
+      display: none; flex-direction: column; gap: 12px; padding: 16px;
+      border: 1px solid #3b2a5e; border-radius: 16px;
+      background: linear-gradient(180deg, #1c1430, #140e20);
+      box-shadow: 0 4px 10px rgba(0,0,0,.4);
+    }
+    #pairing.open { display: flex; }
+    #pairing p { margin: 0; font-size: 13px; color: #a99cc8; }
+    #pairing form { display: flex; flex-direction: column; gap: 10px; }
+    #pairCode { text-align: center; font-size: 20px; letter-spacing: .4em; text-transform: uppercase; }
+    .pair-actions { display: flex; gap: 10px; }
+    .pair-actions .key { flex: 1; }
+
+    #status { min-height: 1.3em; margin: -12px 0; text-align: center; color: #8f86a8; font-size: 13px; }
+    .danger { color: #ff8c8c !important; }
   </style>
 </head>
 <body>
-  <h1>onn remote</h1><p>Google TV Remote Service</p>
-  <div class="top"><button data-key="POWER">Power</button><button data-key="INPUT">Input</button><button data-key="MUTE">Mute</button></div>
-  <div class="dpad"><i class="blank"></i><button class="round" data-key="DPAD_UP">▲</button><i class="blank"></i><button class="round" data-key="DPAD_LEFT">◀</button><button class="round" data-key="DPAD_CENTER">OK</button><button class="round" data-key="DPAD_RIGHT">▶</button><i class="blank"></i><button class="round" data-key="DPAD_DOWN">▼</button><i class="blank"></i></div>
-  <div class="wide"><button data-key="BACK">Back</button><button data-key="HOME">Home</button><button data-key="MENU">Menu</button><button data-key="VOLUME_DOWN">Vol −</button><button data-key="MEDIA_PLAY_PAUSE">Play/Pause</button><button data-key="VOLUME_UP">Vol +</button></div>
-  <form id="settings"><input id="host" aria-label="TV IP address" placeholder="TV IP address or hostname" required><button>Save</button></form>
+  <header>
+    <div>
+      <h1>onn <span>remote</span></h1>
+      <div class="host-line"><span class="dot" id="dot"></span><span id="hostLabel">no device set</span></div>
+    </div>
+    <button class="gear" id="gearBtn" aria-label="Settings" aria-expanded="false">⚙</button>
+  </header>
+
   <div id="status" aria-live="polite"></div>
+
+  <section id="settings" aria-label="Device setup">
+    <button type="button" class="key" id="scanBtn">◎ Scan for devices</button>
+    <div class="devices" id="deviceList" hidden></div>
+    <div class="or">or enter manually</div>
+    <form id="hostForm">
+      <input id="host" aria-label="TV IP address" placeholder="TV IP address or hostname" required>
+      <button class="key">Save</button>
+    </form>
+  </section>
+
+  <section id="pairing" aria-label="Pairing">
+    <p>Pairing puts a one-time code on the TV. Type it below.</p>
+    <form id="pairForm">
+      <input id="pairCode" aria-label="Pairing code" placeholder="A1B2C3" maxlength="6"
+             pattern="[0-9A-Fa-f]{6}" autocomplete="one-time-code" autocapitalize="characters"
+             spellcheck="false" required>
+      <div class="pair-actions">
+        <button type="button" class="key" id="pairCancel">Cancel</button>
+        <button class="key power">Pair</button>
+      </div>
+    </form>
+  </section>
+
+  <div class="row3">
+    <button class="key power" data-key="POWER">⏻ Power</button>
+    <button class="key" data-key="INPUT">Input</button>
+    <button class="key" data-key="MUTE">Mute</button>
+  </div>
+
+  <div class="dpad">
+    <div class="ring"></div>
+    <button class="up" data-key="DPAD_UP" aria-label="Up">▲</button>
+    <button class="left" data-key="DPAD_LEFT" aria-label="Left">◀</button>
+    <button class="ok" data-key="DPAD_CENTER">OK</button>
+    <button class="right" data-key="DPAD_RIGHT" aria-label="Right">▶</button>
+    <button class="down" data-key="DPAD_DOWN" aria-label="Down">▼</button>
+  </div>
+
+  <div class="row3">
+    <button class="key caps" data-key="BACK">BACK</button>
+    <button class="key caps" data-key="HOME">HOME</button>
+    <button class="key caps" data-key="MENU">MENU</button>
+  </div>
+
+  <div class="pills">
+    <div class="pill" role="group" aria-label="Volume">
+      <button class="big" data-key="VOLUME_DOWN" aria-label="Volume down">−</button>
+      <div class="sep"></div>
+      <button class="big" data-key="VOLUME_UP" aria-label="Volume up">+</button>
+    </div>
+    <div class="pill" role="group" aria-label="Media">
+      <button class="dim" data-key="MEDIA_REWIND" aria-label="Rewind">◀◀</button>
+      <div class="sep"></div>
+      <button data-key="MEDIA_PLAY_PAUSE" aria-label="Play or pause">▶⏸</button>
+      <div class="sep"></div>
+      <button class="dim" data-key="MEDIA_FAST_FORWARD" aria-label="Fast forward">▶▶</button>
+    </div>
+  </div>
+
   <script>
-    const status = document.querySelector('#status'), host = document.querySelector('#host');
-    const say = (text, error=false) => { status.textContent = text; status.className = error ? 'danger' : ''; };
-    fetch('/api/config').then(r=>r.json()).then(c=>host.value=c.host||'');
+    const $ = s => document.querySelector(s);
+    const statusEl = $('#status'), dot = $('#dot'), hostLabel = $('#hostLabel');
+    const settings = $('#settings'), gear = $('#gearBtn');
+    const scanBtn = $('#scanBtn'), deviceList = $('#deviceList');
+    const hostForm = $('#hostForm'), hostInput = $('#host');
+    const pairing = $('#pairing'), pairForm = $('#pairForm'), pairCode = $('#pairCode');
+    const scanIdle = scanBtn.textContent;
+    let current = { host: '', name: '' };
+    let sayTimer = 0;
+
+    const say = (text, error = false) => {
+      clearTimeout(sayTimer);
+      statusEl.textContent = text;
+      statusEl.className = error ? 'danger' : '';
+    };
+    const flash = text => { say(text); sayTimer = setTimeout(() => statusEl.textContent = '', 1800); };
+    const setDot = state => dot.className = 'dot' + (state ? ' ' + state : '');
+    const busy = on => dot.classList.toggle('busy', on);
+
+    // All server errors come back as {error}; network failures land in catch.
+    const api = async (path, body) => {
+      try {
+        const r = await fetch(path, body === undefined ? undefined : {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+        const data = await r.json().catch(() => ({}));
+        return { ok: r.ok, ...data };
+      } catch {
+        return { ok: false, error: 'Cannot reach the remote server.' };
+      }
+    };
+
+    const setCurrent = (host, name) => {
+      current = { host: host || '', name: name || '' };
+      hostLabel.textContent = current.name || current.host || 'no device set';
+      hostInput.value = current.host;
+      [...deviceList.children].forEach(row => row.classList.toggle('selected', row.dataset.ip === current.host));
+    };
+    const openSettings = open => { settings.classList.toggle('open', open); gear.setAttribute('aria-expanded', open); };
+    const openPairing = open => { pairing.classList.toggle('open', open); if (open) openSettings(false); };
+
+    gear.onclick = () => {
+      const open = !settings.classList.contains('open');
+      openPairing(false);
+      openSettings(open);
+      if (open && !deviceList.children.length) runScan();
+    };
+    scanBtn.onclick = () => runScan();
+
+    function renderDevices(devices) {
+      deviceList.innerHTML = '';
+      deviceList.hidden = !devices.length;
+      for (const device of devices) {
+        const row = document.createElement('button');
+        row.type = 'button'; row.className = 'key device'; row.dataset.ip = device.ip;
+        const label = document.createElement('span');
+        const name = document.createElement('b'); name.textContent = device.name || 'Google TV device';
+        const ip = document.createElement('small'); ip.textContent = device.ip;
+        label.append(name, ip);
+        row.append(label);
+        row.onclick = () => selectDevice(device);
+        deviceList.append(row);
+      }
+      setCurrent(current.host, current.name);
+    }
+
+    async function runScan() {
+      if (scanBtn.disabled) return;
+      scanBtn.disabled = true; scanBtn.textContent = 'Scanning…'; busy(true);
+      say('Looking for compatible devices on your network…');
+      const d = await api('/api/scan', {});
+      scanBtn.disabled = false; scanBtn.textContent = scanIdle; busy(false);
+      if (!d.ok) { say(d.error || 'Scan failed.', true); return; }
+      const devices = d.devices || [];
+      renderDevices(devices);
+      if (!devices.length) {
+        say('No compatible devices found — check the TV is awake, or enter its IP below.', true);
+        return;
+      }
+      if (devices.length === 1 && !current.host) {
+        say('Found one device — selecting it…');
+        await selectDevice(devices[0]);
+        return;
+      }
+      say(`Found ${devices.length} compatible device${devices.length > 1 ? 's' : ''} — tap one to use it.`);
+    }
+
+    async function selectDevice(device) {
+      const saved = await api('/api/config', { host: device.ip, name: device.name || '' });
+      if (!saved.ok) { say(saved.error || 'Could not save.', true); return; }
+      setCurrent(saved.host, saved.name);
+      await checkDevice();
+    }
+
+    async function checkDevice() {
+      say('Checking the connection…'); busy(true);
+      const p = await api('/api/probe', {});
+      busy(false);
+      if (!p.ok) { setDot('err'); say(p.error || 'Could not reach the device.', true); return; }
+      if (p.paired) { setDot('ok'); openPairing(false); openSettings(false); flash('Ready.'); }
+      else beginPairing();
+    }
+
+    async function beginPairing(message) {
+      openPairing(true); pairCode.value = ''; setDot('warn');
+      say(message || 'Starting pairing — watch the TV for a code…'); busy(true);
+      const d = await api('/api/pair/start', { host: current.host });
+      busy(false);
+      if (!d.ok) { openPairing(false); openSettings(true); setDot('err'); say(d.error || 'Could not start pairing.', true); return; }
+      say('Enter the code shown on the TV.');
+      pairCode.focus();
+    }
+
+    pairForm.onsubmit = async e => {
+      e.preventDefault();
+      say('Pairing…');
+      const d = await api('/api/pair/finish', { host: current.host, code: pairCode.value.trim() });
+      if (!d.ok) { beginPairing((d.error || 'Pairing failed.') + ' Putting a fresh code on the TV…'); return; }
+      openPairing(false); openSettings(false); setDot('ok'); flash('Paired — ready to go.');
+    };
+    $('#pairCancel').onclick = () => {
+      openPairing(false); openSettings(true);
+      setDot(current.host ? 'warn' : ''); say('Pairing canceled.');
+    };
+
+    hostForm.onsubmit = async e => {
+      e.preventDefault();
+      const saved = await api('/api/config', { host: hostInput.value.trim(), name: '' });
+      if (!saved.ok) { say(saved.error || 'Could not save.', true); return; }
+      setCurrent(saved.host, saved.name);
+      await checkDevice();
+    };
+
     document.querySelectorAll('[data-key]').forEach(button => button.onclick = async () => {
-      say('Sending…'); const r = await fetch('/api/key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:button.dataset.key})});
-      const data = await r.json(); say(data.error || 'Sent', !r.ok);
+      say('Sending…');
+      const d = await api('/api/key', { key: button.dataset.key });
+      if (d.ok) { setDot('ok'); flash('Sent'); return; }
+      if (d.needsDevice) { openSettings(true); say('Pick your device first.', true); runScan(); return; }
+      if (d.needsPairing) { beginPairing(); return; }
+      setDot('err'); say(d.error || 'Failed to send.', true);
     });
-    document.querySelector('#settings').onsubmit = async e => { e.preventDefault(); const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host:host.value})}); const d=await r.json(); say(d.error || 'TV address saved.',!r.ok); };
+
+    (async () => {
+      const c = await api('/api/config');
+      setCurrent(c.host, c.name);
+      if (!current.host) { openSettings(true); runScan(); return; }
+      busy(true);
+      const p = await api('/api/probe', {});
+      busy(false);
+      if (!p.ok) { setDot('err'); say(p.error || 'Could not reach the device.', true); return; }
+      setDot(p.paired ? 'ok' : 'warn');
+      if (!p.paired) say('The device needs pairing — tap ⚙ to pair.');
+    })();
   </script>
 </body></html>
