@@ -52,6 +52,15 @@ again by itself.
 > **Important:** Do not expose this container to the internet. It is intended
 > for a trusted LAN and has no authentication.
 
+### Behind a reverse proxy
+
+Device scanning picks the subnet to search from the requesting browser's IP.
+Through a reverse proxy that means the proxy's `X-Forwarded-For` header, so
+make sure it's set (nearly every reverse proxy sets it by default — nginx,
+Traefik, Nginx Proxy Manager, SWAG). Without it, scanning falls back to the
+container's own network, which usually can't see the TV. Manual IP entry
+always works regardless.
+
 ## Development checks
 
 ```bash

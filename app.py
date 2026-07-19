@@ -79,6 +79,18 @@ class Handler(BaseHTTPRequestHandler):
             return None
         return body
 
+    def client_ip(self) -> str:
+        """The browser's real IP, even behind a reverse proxy.
+
+        Direct connections leave client_address as the browser's own address,
+        but behind a reverse proxy it's the proxy's address instead — the
+        proxy is expected to set X-Forwarded-For to the original client.
+        """
+        forwarded = self.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        return self.client_address[0]
+
     def target_host(self, body: dict) -> str | None:
         """Host from the request body, falling back to the saved device."""
         host = str(body.get("host", "")).strip() or config()["host"]
@@ -160,7 +172,7 @@ class Handler(BaseHTTPRequestHandler):
         async def name_lookup(ip: str) -> str | None:
             return await fetch_device_name(ip, certfile, keyfile)
 
-        result = asyncio.run(scan(self.client_address[0], name_lookup))
+        result = asyncio.run(scan(self.client_ip(), name_lookup))
         self.respond(HTTPStatus.OK, result)
 
     def handle_probe(self, body: dict) -> None:
