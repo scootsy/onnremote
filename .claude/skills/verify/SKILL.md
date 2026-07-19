@@ -23,9 +23,9 @@ python3 -m venv "$SCRATCH/venv" && "$SCRATCH/venv/bin/pip" install -r requiremen
    CN like `atvremote/board/board/Name/AA:BB:..` for the cert-name fallback),
    and 8008 (DIAL `device-desc.xml` with a `friendlyName`). Pass `nodial` to
    test the cert-name fallback.
-2. **Server** — `ONNREMOTE_DATA_DIR=$SCRATCH/data PORT=8080 venv/bin/python app.py`
+2. **Server** — `ONNREMOTE_DATA_DIR=$SCRATCH/data PORT=4897 venv/bin/python app.py`
 3. **Drive** — Playwright (`playwright-core` + `/opt/pw-browsers/chromium`)
-   against `http://<container-ip>:8080` (use the container IP, not localhost,
+   against `http://<container-ip>:4897` (use the container IP, not localhost,
    so `/api/scan` derives a scannable client subnet). Delete
    `$SCRATCH/data/config.json` to re-test the first-launch auto-scan/auto-select.
 

@@ -8,6 +8,6 @@ COPY static ./static
 RUN mkdir -p /data
 
 ENV ONNREMOTE_DATA_DIR=/data
-EXPOSE 8080
+EXPOSE 4897
 VOLUME ["/data"]
 CMD ["python", "app.py"]

@@ -42,8 +42,8 @@ again by itself.
 ## Run it on Unraid
 
 1. Copy this folder to the server and run `docker compose up -d --build`, or
-   create an Unraid container from this `Dockerfile` with port `8080` mapped.
-2. Browse to `http://YOUR-SERVER:8080` from the same LAN. The remote scans for
+   create an Unraid container from this `Dockerfile` with port `4897` mapped.
+2. Browse to `http://YOUR-SERVER:4897` from the same LAN. The remote scans for
    devices on first launch — tap yours (a lone find selects itself).
 3. Type the pairing code the TV displays. Keep `/data` persistent so the
    pairing certificate survives upgrades. On the TV, enable network remote
@@ -59,5 +59,5 @@ python -m py_compile app.py remote.py discovery.py
 python app.py
 ```
 
-Then open `http://localhost:8080`. The UI, configuration, and scan endpoints
+Then open `http://localhost:4897`. The UI, configuration, and scan endpoints
 work without a TV; sending a key requires a Google/Android TV on the LAN.
